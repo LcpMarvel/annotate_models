@@ -64,9 +64,9 @@ module AnnotateModels
   ]
 
   SERIALIZER_PATTERNS = [
-    File.join(SERIALIZERS_DIR,       "%MODEL_NAME%_serializer.rb"),
-    File.join(SERIALIZERS_TEST_DIR,  "%MODEL_NAME%_serializer_spec.rb"),
-    File.join(SERIALIZERS_SPEC_DIR,  "%MODEL_NAME%_serializer_spec.rb")
+    File.join(SERIALIZERS_DIR,       "%MODEL_NAME%_serializer"),
+    File.join(SERIALIZERS_TEST_DIR,  "%MODEL_NAME%_serializer"),
+    File.join(SERIALIZERS_SPEC_DIR,  "%MODEL_NAME%_serializer")
   ]
 
   # Don't show limit (#) on these column types
@@ -361,7 +361,7 @@ module AnnotateModels
 
           unless options[exclusion_key]
             did_annotate = self.const_get(patterns_constant).
-              map { |file| resolve_filename(file, model_name, table_name) }.
+              map { |file| resolve_filename(file, model_name, table_name) }.flatten.
               map { |file| annotate_one_file(file, info, position_key, options_with_position(options, position_key)) }.
               detect { |result| result } || did_annotate
           end
@@ -508,7 +508,7 @@ module AnnotateModels
             deannotated_klass = true if(remove_annotation_of_file(model_file_name))
 
             (TEST_PATTERNS + FIXTURE_PATTERNS + FACTORY_PATTERNS + SERIALIZER_PATTERNS).
-              map { |file| resolve_filename(file, model_name, table_name) }.
+              map { |file| resolve_filename(file, model_name, table_name) }.flatten.
               each do |file|
                 if File.exist?(file)
                   remove_annotation_of_file(file)
@@ -526,9 +526,11 @@ module AnnotateModels
     end
 
     def resolve_filename(filename_template, model_name, table_name)
-      return filename_template.
+      filename = filename_template.
         gsub('%MODEL_NAME%', model_name).
         gsub('%TABLE_NAME%', table_name || model_name.pluralize)
+
+      File.directory?(filename) ? Dir["#{filename}/*.rb"] : filename
     end
 
     def classified_sort(cols)
